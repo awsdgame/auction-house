@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auction House Tycoon</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; color: #333; }
+    header { background: linear-gradient(90deg, #182848, #4b6cb7); padding: 1rem; color: white; text-align: center; font-size: 1.5rem; }
+    main { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; padding: 1rem; }
+    .auction-list, .sidebar, .inventory { background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .auction-item, .inventory-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .auction-item:last-child, .inventory-item:last-child { border-bottom: none; }
+    .bid-btn, .sell-btn { background: #4b6cb7; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
+    .bid-btn:hover, .sell-btn:hover { background: #182848; }
+    .balance, .history { margin-bottom: 1rem; }
+    .history-log { max-height: 200px; overflow-y: auto; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>Auction House Tycoon</header>
+  <main>
+    <div>
+      <div class="auction-list">
+        <h2>Live Auctions</h2>
+        <div id="auctionContainer"></div>
+      </div>
+      <div class="inventory">
+        <h2>Your Inventory</h2>
+        <div id="inventoryContainer"></div>
+      </div>
+    </div>
+    <div class="sidebar">
+      <div class="balance"><strong>Balance:</strong> $<span id="balance">500</span></div>
+      <div class="history">
+        <h3>Auction History</h3>
+        <div class="history-log" id="historyLog"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const auctionContainer = document.getElementById('auctionContainer');
+    const inventoryContainer = document.getElementById('inventoryContainer');
+    const balanceEl = document.getElementById('balance');
+    const historyLog = document.getElementById('historyLog');
+
+    let balance = 500;
+    let auctions = [];
+    let inventory = [];
+    const items = [
+      { name: 'Antique Vase', base: 50 },
+      { name: 'Rare Painting', base: 120 },
+      { name: 'Vintage Watch', base: 90 },
+      { name: 'Gemstone Ring', base: 150 },
+      { name: 'Old Coin', base: 30 }
+    ];
+
+    function addHistory(text) {
+      const entry = document.createElement('div');
+      entry.textContent = text;
+      historyLog.prepend(entry);
+    }
+
+    function createAuction(item=null) {
+      const product = item || items[Math.floor(Math.random() * items.length)];
+      auctions.push({
+        name: product.name,
+        price: product.base,
+        highestBidder: 'AI',
+        timeLeft: 10
+      });
+    }
+
+    function renderAuctions() {
+      auctionContainer.innerHTML = '';
+      auctions.forEach((auction, index) => {
+        const div = document.createElement('div');
+        div.className = 'auction-item';
+        div.innerHTML = `
+          <span>${auction.name} - $${auction.price} (${auction.highestBidder}) | ${auction.timeLeft}s</span>
+          <button class="bid-btn" onclick="placeBid(${index})">Bid</button>
+        `;
+        auctionContainer.appendChild(div);
+      });
+    }
+
+    function renderInventory() {
+      inventoryContainer.innerHTML = '';
+      if (inventory.length === 0) {
+        inventoryContainer.innerHTML = '<em>No items</em>';
+        return;
+      }
+      inventory.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'inventory-item';
+        div.innerHTML = `
+          <span>${item.name} (Value: $${item.base})</span>
+          <button class="sell-btn" onclick="sellItem(${index})">Sell</button>
+        `;
+        inventoryContainer.appendChild(div);
+      });
+    }
+
+    function placeBid(index) {
+      const auction = auctions[index];
+      const newBid = auction.price + Math.floor(Math.random() * 20) + 10;
+      if (balance >= newBid) {
+        auction.price = newBid;
+        auction.highestBidder = 'You';
+        balanceEl.textContent = balance;
+        renderAuctions();
+      }
+    }
+
+    function sellItem(index) {
+      const item = inventory[index];
+      const sellPrice = item.base + Math.floor(Math.random() * 50);
+      balance += sellPrice;
+      balanceEl.textContent = balance;
+      addHistory(`Sold ${item.name} for $${sellPrice}`);
+      inventory.splice(index, 1);
+      renderInventory();
+    }
+
+    function updateAuctions() {
+      auctions.forEach((auction, index) => {
+        auction.timeLeft--;
+        if (auction.highestBidder === 'AI' && Math.random() > 0.5) {
+          auction.price += Math.floor(Math.random() * 15) + 5;
+        }
+        if (auction.timeLeft <= 0) {
+          if (auction.highestBidder === 'You') {
+            addHistory(`You won ${auction.name} for $${auction.price}`);
+            inventory.push({ name: auction.name, base: auction.price });
+            renderInventory();
+          } else {
+            addHistory(`${auction.name} sold to AI for $${auction.price}`);
+          }
+          auctions.splice(index, 1);
+          createAuction();
+        }
+      });
+      renderAuctions();
+    }
+
+    createAuction();
+    createAuction();
+    renderAuctions();
+    renderInventory();
+    setInterval(updateAuctions, 1000);
+  </script>
+</body>
+</html>
